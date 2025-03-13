@@ -1,0 +1,114 @@
+---
+title: "Homework 6"
+author: "Mari Sanders"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(igraph)
+data <- read_delim("moreno_zebra/out.moreno_zebra_zebra", skip = 1) %>% select(1:3) 
+set.seed(10)
+```
+
+```{r}
+edge_list <- data %>% select(1:2) %>% as.data.frame()
+g <- graph_from_data_frame(edge_list, directed = FALSE)
+summary(g)
+igraph_options(vertex.size=13, vertex.label = V(g)$name, vertex.labels.cex = 0.3)
+plot(g, layout = layout_with_kk)
+
+original_graph <- g 
+```
+
+# Random Failure
+
+```{r}
+remove_random_nodes <- function(graph, random_nodes) {
+  remaining_nodes <- setdiff(V(graph), random_nodes)
+  induced_subgraph(graph, remaining_nodes) 
+}
+num_nodes <- vcount(g)
+gc.er <- numeric(num_nodes) 
+removed_nodes <- numeric(num_nodes)
+
+for (i in (1:num_nodes)) {
+  removed_node_cnt <- sample(V(g),1)  structure 
+  removed_nodes[i] <- removed_node_cnt 
+  g <- remove_random_nodes(g, removed_node_cnt)
+
+  components <- clusters(g) 
+  if (i < num_nodes)
+    gc.er[i] <- max(components$csize) 
+  else
+    gc.er[i] <- 0
+}
+
+# Visualize the giant cluster size of the ER random network after node removal
+plot(1:num_nodes, gc.er, type="l", col="blue", lwd=2, xlab=c("Number of removed nodes"), ylab=c("Giant cluster size"), main="Node removal of an ER random network")
+```
+
+# High Degree 
+
+```{r}
+graph <- original_graph 
+
+gc.er.hd <- numeric(num_nodes) 
+
+
+degrees <- degree(graph)
+removed_nodes.hd <- order(-degrees)
+
+for (i in (1:num_nodes)) {
+  removed_node_cnt <- removed_nodes.hd[1:i] # find the newly removed node
+  graph <- remove_random_nodes(original_graph, removed_node_cnt)
+
+  components <- clusters(graph)
+  if (i < num_nodes)
+    gc.er.hd[i] <- max(components$csize)
+  else
+    gc.er.hd[i] <- 0
+}
+
+plot(1:num_nodes, gc.er, type="l", col="blue", lwd=2, xlab=c("Number of removed nodes"), ylab=c("Giant cluster size"), main="Node removal of an ER random network")
+
+lines(1:num_nodes, gc.er.hd, col="red", lwd=2)
+
+legend("topright",legend = c("Random failure","High degree"), col = c("blue", "red"), lwd = 2, cex= 0.8)
+```
+
+
+# Adaptive High Degree
+
+```{r}
+graph <- original_graph 
+
+gc.er.hda <- numeric(num_nodes) 
+removed_nodes.hda <- numeric(num_nodes)
+
+for (i in (1:num_nodes)) {
+  
+  #sort degree
+  degrees <- degree(graph)
+  removed_node_cnt <- order(-degrees)[1] 
+  removed_nodes.hda[i] <- removed_node_cnt
+  graph <- remove_random_nodes(graph, removed_node_cnt)
+
+  components <- clusters(graph)
+  if (i < num_nodes)
+    gc.er.hda[i] <- max(components$csize)
+  else
+    gc.er.hda[i] <- 0
+}
+
+plot(1:num_nodes, gc.er, type="l", col="blue", lwd=2, xlab=c("Number of removed nodes"), ylab=c("Giant cluster size"), main="Node removal of an ER random network")
+
+lines(1:num_nodes, gc.er.hd, col="red", lwd=2)
+
+lines(1:num_nodes, gc.er.hda, col="black", lwd=2)
+
+legend("topright",legend = c("Random failure","High degree", "Adaptive high degree"), col = c("blue", "red", "black"), lwd = 2, cex= 0.8)
+```
+
